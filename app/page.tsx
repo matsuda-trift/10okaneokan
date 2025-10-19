@@ -1,7 +1,7 @@
 "use client";
 
 import type { CSSProperties, FormEvent } from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { OkanResult } from "@/lib/okan";
 
 type MessageRole = "okan" | "user" | "system";
@@ -106,6 +106,7 @@ export default function Home() {
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [answers, setAnswers] = useState<Record<string, number>>({});
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const isFinished = stepIndex >= prompts.length;
   const currentPrompt = prompts[stepIndex];
@@ -115,6 +116,15 @@ export default function Home() {
     : stepIndex === prompts.length - 1
       ? "オカンに送る"
       : "送信";
+
+  const focusInput = () => {
+    if (isFinished || typeof window === "undefined") {
+      return;
+    }
+    window.requestAnimationFrame(() => {
+      inputRef.current?.focus({ preventScroll: true });
+    });
+  };
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -185,6 +195,7 @@ export default function Home() {
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
     setAnswers(updatedAnswers);
+    focusInput();
 
     if (stepIndex + 1 < prompts.length) {
       queueNextPrompt(stepIndex + 1, updatedAnswers);
@@ -220,6 +231,7 @@ export default function Home() {
       } else {
         setInput("");
       }
+      focusInput();
     }, 400);
   };
 
@@ -313,6 +325,7 @@ export default function Home() {
     } else {
       setInput("");
     }
+    focusInput();
   };
 
   const isSubmitDisabled = isTyping || (!isFinished && input.trim().length === 0);
@@ -356,6 +369,7 @@ export default function Home() {
               inputMode="numeric"
               value={input}
               onChange={(event) => setInput(event.target.value)}
+              ref={inputRef}
               className="w-full flex-1 rounded-xl border border-[color:var(--okan-border)] bg-white px-4 py-3 text-right text-lg tracking-wide text-[color:var(--okan-text)] outline-none focus-visible:border-[color:var(--okan-button)] focus-visible:ring-2 focus-visible:ring-[color:var(--okan-button)]/40"
               placeholder="0"
               required
