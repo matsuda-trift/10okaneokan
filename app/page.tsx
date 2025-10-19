@@ -1,7 +1,7 @@
 "use client";
 
 import type { CSSProperties, FormEvent } from "react";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import type { OkanResult } from "@/lib/okan";
 
 type MessageRole = "okan" | "user" | "system";
@@ -85,8 +85,6 @@ const typingMessage: Message = {
   text: "•••",
 };
 
-const STORAGE_KEY = "okaneOkan:lastSnapshot";
-
 const parseAmount = (value: string) => {
   const normalized = value.replace(/,/g, "").trim();
   const numeric = Number(normalized);
@@ -118,51 +116,13 @@ export default function Home() {
       : "送信";
 
   const focusInput = () => {
-    if (isFinished || typeof window === "undefined") {
+    if (typeof window === "undefined") {
       return;
     }
     window.requestAnimationFrame(() => {
       inputRef.current?.focus({ preventScroll: true });
     });
   };
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    try {
-      const raw = window.localStorage.getItem(STORAGE_KEY);
-      if (!raw) {
-        return;
-      }
-
-      const parsed = JSON.parse(raw) as Record<string, number>;
-      const normalized = Object.fromEntries(
-        Object.entries(parsed).map(([key, value]) => {
-          const numeric =
-            typeof value === "number" ? value : Number(String(value));
-          return [key, Number.isFinite(numeric) ? numeric : 0];
-        }),
-      ) as Record<string, number>;
-
-      setAnswers(normalized);
-
-      const firstPromptId = promptOrder[0];
-      if (normalized[firstPromptId] !== undefined) {
-        setInput(String(normalized[firstPromptId]));
-      }
-    } catch (error) {
-      console.error("Failed to restore snapshot", error);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(answers));
-  }, [answers]);
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -308,6 +268,7 @@ export default function Home() {
   };
 
   const resetConversation = () => {
+    setAnswers({});
     const nextPrompts = createPromptSequence();
     setPrompts(nextPrompts);
     setMessages([
@@ -319,12 +280,7 @@ export default function Home() {
     ]);
     setStepIndex(0);
     setIsTyping(false);
-    const firstPromptId = nextPrompts[0]?.id;
-    if (firstPromptId && answers[firstPromptId] !== undefined) {
-      setInput(String(answers[firstPromptId]));
-    } else {
-      setInput("");
-    }
+    setInput("");
     focusInput();
   };
 
@@ -378,6 +334,8 @@ export default function Home() {
           <button
             type="submit"
             className="w-full rounded-xl bg-[color:var(--okan-button)] px-4 py-3 text-base font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+            onMouseDown={(event) => event.preventDefault()}
+            onPointerDown={(event) => event.preventDefault()}
             disabled={isSubmitDisabled}
           >
             {buttonLabel}
