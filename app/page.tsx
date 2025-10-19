@@ -391,14 +391,18 @@ export default function Home() {
           )}
           {!isFinished ? (
             <input
-              type="number"
+              type="text"
               inputMode="numeric"
               value={input}
-              onChange={(event) => setInput(event.target.value)}
+              onChange={(event) => {
+                const sanitized = event.target.value.replace(/[^0-9]/g, "");
+                setInput(sanitized);
+              }}
               ref={inputRef}
               className="w-full flex-1 rounded-xl border border-[color:var(--okan-border)] bg-white px-4 py-3 text-right text-lg tracking-wide text-[color:var(--okan-text)] outline-none focus-visible:border-[color:var(--okan-button)] focus-visible:ring-2 focus-visible:ring-[color:var(--okan-button)]/40"
               placeholder="0"
               required
+              aria-label="金額の入力"
             />
           ) : null}
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
@@ -424,6 +428,7 @@ export default function Home() {
           </div>
         </form>
       </section>
+      <Footer />
     </main>
   );
 }
@@ -513,5 +518,46 @@ function ResultDetails({ result }: { result: OkanResult }) {
         </div>
       ) : null}
     </div>
+  );
+}
+
+function Footer() {
+  const footerLinks = [
+    { href: "https://www.trift3.com/privacy", label: "プライバシーポリシー" },
+    { href: "https://www.trift3.com/terms", label: "利用規約" },
+    { href: "https://www.trift3.com/legal", label: "法的情報" },
+    { href: "https://www.trift3.com/contact", label: "お問い合わせ" },
+  ];
+
+  return (
+    <footer className="mx-auto mt-4 w-full max-w-[720px] rounded-2xl border border-[color:var(--okan-border)] bg-white/70 p-4 text-[color:var(--okan-text)] shadow-sm">
+      <div className="flex flex-col gap-2">
+        <p className="text-xs font-semibold">【免責事項】</p>
+        <p className="text-xs leading-relaxed text-[color:var(--okan-muted)]">
+          このサービスは家計の目安を一緒に考えるためのツールやで。投資商品の販売や勧誘はせぇへんし、診断結果はあくまで参考にしといてな。
+        </p>
+      </div>
+      <div className="my-4 h-px bg-[color:var(--okan-border)]" aria-hidden="true"></div>
+      <div className="flex flex-col gap-3 text-xs text-[color:var(--okan-muted)] sm:flex-row sm:items-center sm:justify-between">
+        <span className="font-medium text-[color:var(--okan-text)]">運営: Trift</span>
+        <nav>
+          <ul className="flex flex-wrap items-center gap-x-3 gap-y-2">
+            {footerLinks.map((link) => (
+              <li key={link.href}>
+                <a
+                  href={link.href}
+                  className="text-blue-600 hover:underline"
+                  rel="noreferrer"
+                  target="_blank"
+                >
+                  {link.label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      </div>
+      <p className="mt-3 text-[10px] text-[color:var(--okan-muted)]">© {new Date().getFullYear()} Trift. All rights reserved.</p>
+    </footer>
   );
 }
