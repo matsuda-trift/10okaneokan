@@ -1,36 +1,39 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+## おかねおかん（Okane Okan）
 
-## Getting Started
+Next.js (App Router) app that scores a monthly money snapshot and returns Kansai-dialect feedback from “オカン”. Built for Vercel Edge Runtime, no external database or auth.
 
-First, run the development server:
+### 要件抜粋
+- 収入・支出・貯金・サブスク・クレカ残高をチャットで入力
+- 出力は点数（0〜100）とコメント、行動提案
+- 採点ロジックは `lib/okan.ts` の `calcScore()` に集約
+- API エンドポイント：`POST /api/score`（Edge Runtime）
+- フロントはモバイル中心のチャットUI（`app/page.tsx`）
+- 永続化は `localStorage`（未実装／今後対応）
 
+### 開発環境
+- Node.js 18+（Vercel推奨）/ npm
+- Next.js 15 / React 19 / TypeScript
+- Tailwind CSS v4（`app/globals.css` でテーマ定義）
+
+### スクリプト
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm run dev     # 開発サーバー（Turbopack）
+npm run build   # 本番ビルド（Edge対応）
+npm start       # ビルド済みを起動
+npm run lint    # ESLint
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### ディレクトリ
+- `app/page.tsx` — チャットUIの土台（入力フローとプレースホルダー文言）
+- `app/api/score/route.ts` — 採点API（Edge Function, JSON POST）
+- `lib/okan.ts` — 採点ロジックとアドバイス生成
+- `app/globals.css` — カラーパレット・フォント（Yomogi / Kosugi Maru）
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 次のステップ候補
+1. `app/page.tsx` で `fetch('/api/score')` を呼び出し、スコア表示を実装
+2. 採点ロジックのチューニングとテスト追加
+3. localStorage で最新入力を保持
+4. ブランドガイドに沿ったモーション・アイコン追加
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Happy hacking!
+# 10okaneokan
