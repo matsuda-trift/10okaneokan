@@ -1,7 +1,7 @@
 "use client";
 
 import type { CSSProperties, FormEvent } from "react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { OkanResult } from "@/lib/okan";
 
 type MessageRole = "okan" | "user" | "system";
@@ -79,6 +79,12 @@ const createPromptSequence = (): Prompt[] =>
     text: pickRandom(promptPool[id]),
   }));
 
+const createInitialPrompts = (): Prompt[] =>
+  promptOrder.map((id) => ({
+    id,
+    text: promptPool[id][0] ?? "",
+  }));
+
 const typingMessage: Message = {
   id: "typing",
   role: "system",
@@ -92,12 +98,12 @@ const parseAmount = (value: string) => {
 };
 
 export default function Home() {
-  const [prompts, setPrompts] = useState<Prompt[]>(() => createPromptSequence());
+  const [prompts, setPrompts] = useState<Prompt[]>(() => createInitialPrompts());
   const [messages, setMessages] = useState<Message[]>(() => [
     {
-      id: prompts[0]?.id ?? "intro",
+      id: promptOrder[0] ?? "intro",
       role: "okan",
-      text: prompts[0]?.text ?? "",
+      text: promptPool[promptOrder[0]]?.[0] ?? "",
     },
   ]);
   const [stepIndex, setStepIndex] = useState(0);
@@ -123,6 +129,27 @@ export default function Home() {
       inputRef.current?.focus({ preventScroll: true });
     });
   };
+
+  useEffect(() => {
+    const randomized = createPromptSequence();
+    setPrompts(randomized);
+    setMessages((prev) => {
+      if (prev.length !== 1) {
+        return prev;
+      }
+      const first = prev[0];
+      if (first.role !== "okan") {
+        return prev;
+      }
+      return [
+        {
+          ...first,
+          id: randomized[0]?.id ?? first.id,
+          text: randomized[0]?.text ?? first.text,
+        },
+      ];
+    });
+  }, []);
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -164,6 +191,48 @@ export default function Home() {
         // エラーは `submitAnswers` 内でハンドリング済み。
       });
     }
+  };
+
+  const handleGoBack = () => {
+    if (isTyping) {
+      return;
+    }
+    if (stepIndex === 0) {
+      return;
+    }
+
+    const targetIndex = stepIndex - 1;
+    const targetPrompt = prompts[targetIndex];
+    if (!targetPrompt) {
+      return;
+    }
+
+    setStepIndex(targetIndex);
+    setMessages((prev) => {
+      let cutIndex = -1;
+      for (let index = prev.length - 1; index >= 0; index -= 1) {
+        const message = prev[index];
+        if (message.role === "okan" && message.id === targetPrompt.id) {
+          cutIndex = index;
+          break;
+        }
+      }
+      if (cutIndex === -1) {
+        return prev;
+      }
+      return prev.slice(0, cutIndex + 1);
+    });
+
+    setAnswers((prev) => {
+      const allowedIds = new Set<PromptId>(promptOrder.slice(0, targetIndex + 1));
+      return Object.fromEntries(
+        Object.entries(prev).filter(([key]) => allowedIds.has(key as PromptId)),
+      ) as Record<string, number>;
+    });
+
+    const saved = answers[targetPrompt.id];
+    setInput(saved !== undefined ? String(saved) : "");
+    focusInput();
   };
 
   const queueNextPrompt = (
@@ -285,6 +354,7 @@ export default function Home() {
   };
 
   const isSubmitDisabled = isTyping || (!isFinished && input.trim().length === 0);
+  const canGoBack = !isFinished && stepIndex > 0 && !isTyping;
 
   return (
     <main className="mx-auto flex min-h-screen max-w-[720px] flex-col gap-6 px-4 py-8 sm:px-6 md:py-12">
@@ -331,15 +401,27 @@ export default function Home() {
               required
             />
           ) : null}
-          <button
-            type="submit"
-            className="w-full rounded-xl bg-[color:var(--okan-button)] px-4 py-3 text-base font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
-            onMouseDown={(event) => event.preventDefault()}
-            onPointerDown={(event) => event.preventDefault()}
-            disabled={isSubmitDisabled}
-          >
-            {buttonLabel}
-          </button>
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+            <button
+              type="button"
+              className="w-full rounded-xl border border-[color:var(--okan-border)] bg-white px-4 py-3 text-base font-semibold text-[color:var(--okan-text)] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+              onClick={handleGoBack}
+              onMouseDown={(event) => event.preventDefault()}
+              onPointerDown={(event) => event.preventDefault()}
+              disabled={!canGoBack}
+            >
+              戻る
+            </button>
+            <button
+              type="submit"
+              className="w-full rounded-xl bg-[color:var(--okan-button)] px-4 py-3 text-base font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+              onMouseDown={(event) => event.preventDefault()}
+              onPointerDown={(event) => event.preventDefault()}
+              disabled={isSubmitDisabled}
+            >
+              {buttonLabel}
+            </button>
+          </div>
         </form>
       </section>
     </main>
